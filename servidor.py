@@ -3,12 +3,15 @@
 Consulta os bancos das lojas em modo SOMENTE LEITURA e entrega os dados
 para o index.html.
 
-  python servidor.py            -> abre http://localhost:8765
-  python servidor.py --porta 9000 --sem-navegador
+  python servidor.py             -> modo local: só este computador, abre o navegador
+  python servidor.py --producao  -> servidor da empresa: aceita acesso da rede, sem navegador
+A porta vem de PORT no .env (padrão 3004); --porta tem prioridade.
 """
 import argparse
 import json
+import os
 import re
+import socket
 import sys
 import threading
 import time
@@ -19,7 +22,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-import pyodbc
+import mssql_python
 
 PASTA = Path(__file__).resolve().parent
 ENV = PASTA / ".env"  # credenciais e lojas; modelo em .env.example
@@ -53,19 +56,22 @@ def carregar_config():
     ativas = [a.strip().lower() for a in env.get("LOJAS_ATIVAS", "").split(",") if a.strip()]
     if ativas:
         lojas = {a: lojas[a] for a in ativas if a in lojas}
-    return {"driver": env.get("DB_DRIVER", "ODBC Driver 17 for SQL Server"),
-            "usuario": env.get("DB_USUARIO", ""), "senha": env.get("DB_SENHA", ""), "lojas": lojas}
+    return {"usuario": env.get("DB_USUARIO", ""), "senha": env.get("DB_SENHA", ""), "lojas": lojas}
+
+
+def _chaves(v):
+    """Valor entre chaves na string de conexão (aceita ; e } na senha)."""
+    return "{" + str(v).replace("}", "}}") + "}"
 
 
 def conectar(cfg, loja, timeout):
     l = cfg["lojas"][loja]
     cs = (
-        f"DRIVER={{{cfg['driver']}}};SERVER={l['servidor']};DATABASE={l['banco']};"
-        f"UID={l.get('usuario', cfg['usuario'])};PWD={l.get('senha', cfg['senha'])};TrustServerCertificate=yes;"
+        f"Server={l['servidor']};Database={l['banco']};"
+        f"UID={_chaves(l.get('usuario', cfg['usuario']))};PWD={_chaves(l.get('senha', cfg['senha']))};"
+        "Encrypt=yes;TrustServerCertificate=yes"
     )
-    conn = pyodbc.connect(cs, timeout=timeout, autocommit=False)
-    conn.timeout = 600
-    return conn
+    return mssql_python.connect(cs, timeout=timeout, autocommit=False)
 
 LOJAS_SEM_PRODUTOS = {"cd"}  # CD não tem cadastro de preços de venda
 CACHE_SEGUNDOS = 300
@@ -140,7 +146,7 @@ def _limpar(v):
 
 
 def _rodar(cur, sql, params=()):
-    cur.execute(sql, params)
+    cur.execute(sql, *params)
     cols = [c[0] for c in cur.description]
     return cols, [[_limpar(v) for v in r] for r in cur.fetchall()]
 
@@ -199,7 +205,7 @@ class Handler(SimpleHTTPRequestHandler):
         if forcar or not item or time.time() - item[0] > CACHE_SEGUNDOS:
             try:
                 dados = consultar(cfg, loja, fn)
-            except pyodbc.Error as e:
+            except mssql_python.Error as e:
                 print(f"[{loja}] ERRO: {e}", file=sys.stderr)
                 return self._json({"erro": f"Não foi possível consultar {cfg['lojas'][loja]['nome']}. "
                                            "Verifique a conexão com o servidor da loja."}, 502)
@@ -232,17 +238,33 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
 
+PORTA_PADRAO = 3004  # orientacoes-projetos-ia.md: Relatório de margens aplicadas
+PORTA_OCUPADA = 3    # código de saída usado por servidor/iniciar.ps1 para não ficar tentando de novo
+
+
+def porta_em_uso(porta):
+    with socket.socket() as s:
+        s.settimeout(1)
+        return s.connect_ex(("127.0.0.1", porta)) == 0
+
+
 def main():
     for s in (sys.stdout, sys.stderr):
         s.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser()
-    p.add_argument("--porta", type=int, default=8765)
+    p.add_argument("--porta", type=int)
+    p.add_argument("--producao", action="store_true", help="escuta na rede (0.0.0.0) e não abre o navegador")
     p.add_argument("--sem-navegador", action="store_true")
     a = p.parse_args()
-    srv = ThreadingHTTPServer(("127.0.0.1", a.porta), Handler)
-    url = f"http://localhost:{a.porta}"
-    print(f"Painel de margens rodando em {url}  (Ctrl+C para encerrar)")
-    if not a.sem_navegador:
+    porta = a.porta or int(os.getenv("PORT") or ler_env().get("PORT") or PORTA_PADRAO)
+    if porta_em_uso(porta):
+        print(f"ERRO: a porta {porta} já está em uso.", file=sys.stderr)
+        sys.exit(PORTA_OCUPADA)
+    host = "0.0.0.0" if a.producao else "127.0.0.1"
+    srv = ThreadingHTTPServer((host, porta), Handler)
+    url = f"http://{socket.gethostname() if a.producao else 'localhost'}:{porta}"
+    print(f"Painel de margens rodando em {url}  (Ctrl+C para encerrar)", flush=True)
+    if not (a.producao or a.sem_navegador):
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try:
         srv.serve_forever()

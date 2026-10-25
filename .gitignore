@@ -13,6 +13,10 @@ __pycache__/
 .venv/
 venv/
 
+# Publicação no servidor (gerados pelo servidor\instalar.ps1)
+logs/
+servidor/.node
+
 # Relatórios e exportações gerados
 *.csv
 *.xlsx
