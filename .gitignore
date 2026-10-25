@@ -1,0 +1,26 @@
+# Credenciais e servidores das lojas (use .env.example como modelo)
+.env
+.env.*
+!.env.example
+config.json
+
+# Configuração local do Claude Code (a skill banco-sismoura tem senhas, servidores e IP)
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Relatórios e exportações gerados
+*.csv
+*.xlsx
+*.pdf
+
+# Sistema / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+*.log

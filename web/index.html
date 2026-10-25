@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Margem por Grupo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f1f3f6; --border:#e3e6eb;
+  --text:#14171c; --muted:#5d6672; --faint:#8a929d;
+  --accent:#2f5bea; --accent-soft:#e8eefe;
+  --good:#16804a; --good-soft:#e5f5ec;
+  --warn:#a86200; --warn-soft:#fdf1df;
+  --bad:#c42b2b; --bad-soft:#fde8e8;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+  --radius:12px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --surface:#171a20; --surface-2:#1e222a; --border:#2a2f38;
+    --text:#e8eaee; --muted:#a3abb7; --faint:#757e8b;
+    --accent:#7d9bff; --accent-soft:#1f2a4a;
+    --good:#4fc787; --good-soft:#15301f;
+    --warn:#f0a945; --warn-soft:#3a2a12;
+    --bad:#ff7b7b; --bad-soft:#3d1a1a;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#171a20; --surface-2:#1e222a; --border:#2a2f38;
+  --text:#e8eaee; --muted:#a3abb7; --faint:#757e8b;
+  --accent:#7d9bff; --accent-soft:#1f2a4a;
+  --good:#4fc787; --good-soft:#15301f;
+  --warn:#f0a945; --warn-soft:#3a2a12;
+  --bad:#ff7b7b; --bad-soft:#3d1a1a;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1360px;margin:0 auto;padding:24px 16px 64px}
+
+/* topo */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:16px;justify-content:space-between;margin-bottom:20px}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--border);background:var(--surface);border-radius:9px;padding:8px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;box-shadow:var(--shadow);transition:background .15s}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn svg{width:16px;height:16px}
+.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.lojas{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:4px;overflow-x:auto;box-shadow:var(--shadow);margin-bottom:16px}
+.lojas button{border:0;background:transparent;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;color:var(--muted);font-weight:500}
+.lojas button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* período */
+.periodo{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.periodo .lbl{color:var(--muted);font-size:13px;margin-right:4px}
+.chip{border:1px solid var(--border);background:var(--surface);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:500}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.chip input{border:0;background:transparent;padding:0;font-size:13px;outline:none}
+.datebox{display:inline-flex;align-items:center;gap:6px}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .t{color:var(--muted);font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{color:var(--faint);font-size:12px;margin-top:2px}
+.kpi.click{cursor:pointer}
+.kpi.click:hover{border-color:var(--accent)}
+
+/* abas */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.tabs .n{background:var(--surface-2);border-radius:999px;padding:1px 8px;font-size:12px;margin-left:6px;color:var(--muted)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:12px;border-bottom:1px solid var(--border);align-items:center}
+.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:7px 10px;background:var(--bg)}
+.search input{border:0;background:transparent;outline:none;width:100%}
+.search svg{width:16px;height:16px;color:var(--faint)}
+select.sel{border:1px solid var(--border);border-radius:9px;padding:7px 10px;background:var(--bg);max-width:260px}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.toolbar .info{margin-left:auto;color:var(--faint);font-size:12px}
+
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;background:var(--surface-2);position:sticky;top:0;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+th .ar{opacity:.5;font-size:10px;margin-left:3px}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.link{cursor:pointer}
+td.nome{white-space:normal;min-width:240px}
+td.nome .sub{color:var(--faint);font-size:12px}
+td.cod{color:var(--muted)}
+.pill{display:inline-block;min-width:64px;text-align:right;padding:2px 8px;border-radius:6px;font-weight:600}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.na{color:var(--faint);background:transparent}
+.tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:1px}
+.bar{position:relative;height:6px;background:var(--surface-2);border-radius:99px;width:120px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:99px}
+.more{display:flex;justify-content:center;padding:14px}
+.empty{padding:48px 16px;text-align:center;color:var(--muted)}
+.foot{color:var(--faint);font-size:12px;margin-top:14px;line-height:1.6}
+.err{background:var(--bad-soft);color:var(--bad);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;display:none}
+.loading{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 70%,transparent);z-index:5;backdrop-filter:blur(2px)}
+.loading.on{display:flex}
+.loading div{background:var(--surface);border:1px solid var(--border);padding:16px 22px;border-radius:12px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:center}
+.loading svg{width:18px;height:18px;animation:spin 1s linear infinite;color:var(--accent)}
+.seg{display:inline-flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;font-size:13px}
+.seg button.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:var(--shadow)}
+.mes{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:9px;padding:5px 10px;background:var(--bg);font-size:13px;color:var(--muted)}
+.mes input{border:0;background:transparent;outline:none;color:var(--text)}
+.hide{display:none!important}
+@media (max-width:640px){
+  .kpi .v{font-size:22px}
+  .toolbar .info{margin-left:0;width:100%}
+  .bar{width:70px}
+}
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg><span id="loadingTxt">Consultando o sistema…</span></div></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Margem por Grupo</h1>
+      <p id="sub">SISMOURA · preços vigentes dos produtos ativos</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnTema" title="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      <button class="btn" id="btnPdf" title="Produtos com compra ou vigência na data selecionada em Dia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M9 14h6M9 17h4"/></svg>Relatório PDF</button>
+      <button class="btn" id="btnCsv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>Exportar</button>
+      <button class="btn primary" id="btnAtualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Atualizar</button>
+    </div>
+  </header>
+
+  <nav class="lojas" id="lojas"></nav>
+  <div class="err" id="err"></div>
+
+  <div class="periodo" id="periodo">
+    <span class="lbl">Vigência:</span>
+    <button class="chip" data-p="hoje">Hoje</button>
+    <button class="chip" data-p="7">Últimos 7 dias</button>
+    <button class="chip" data-p="30">Últimos 30 dias</button>
+    <button class="chip" data-p="90">Últimos 90 dias</button>
+    <button class="chip" data-p="todos">Todos</button>
+    <label class="chip datebox" id="chipData">Dia <input type="date" id="inpData"></label>
+  </div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="tabs" id="tabs">
+    <button data-t="grupos">Margem por grupo<span class="n" id="nGrupos">0</span></button>
+    <button data-t="produtos">Produtos<span class="n" id="nProdutos">0</span></button>
+    <button data-t="vigencias">Por data de vigência<span class="n" id="nVig">0</span></button>
+    <button data-t="vendas">Vendas do mês<span class="n" id="nVendas">—</span></button>
+  </div>
+
+  <!-- GRUPOS -->
+  <div class="card" id="vGrupos">
+    <div class="toolbar">
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="qGrupo" placeholder="Buscar grupo…"></label>
+      <span class="info">Clique em um grupo para ver os produtos</span>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr id="hGrupos"></tr></thead>
+      <tbody id="bGrupos"></tbody>
+    </table></div>
+  </div>
+
+  <!-- PRODUTOS -->
+  <div class="card hide" id="vProdutos">
+    <div class="toolbar">
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="qProd" placeholder="Buscar por nome ou código…"></label>
+      <select class="sel" id="selGrupo"><option value="">Todos os grupos</option></select>
+      <select class="sel" id="selFaixa">
+        <option value="">Todas as margens</option>
+        <option value="neg">Abaixo do custo</option>
+        <option value="baixa">Margem abaixo de 15%</option>
+        <option value="alta">Margem acima de 40%</option>
+        <option value="semcusto">Sem custo cadastrado</option>
+      </select>
+      <span class="info" id="infoProd"></span>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr id="hProd"></tr></thead>
+      <tbody id="bProd"></tbody>
+    </table></div>
+    <div class="more"><button class="btn hide" id="btnMais">Mostrar mais</button></div>
+  </div>
+
+  <!-- VIGÊNCIAS -->
+  <div class="card hide" id="vVig">
+    <div class="toolbar"><span class="info" style="margin-left:0">Datas da mais recente para a mais antiga · clique para ver os produtos do dia</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th>Data de vigência</th><th class="num">Produtos</th><th class="num">Margem média</th>
+        <th class="num">Markup médio</th><th class="num">Abaixo do custo</th><th>Grupos</th>
+      </tr></thead>
+      <tbody id="bVig"></tbody>
+    </table></div>
+    <div class="more"><button class="btn hide" id="btnMaisVig">Mostrar mais</button></div>
+  </div>
+
+  <!-- VENDAS DO MÊS -->
+  <div class="card hide" id="vVendas">
+    <div class="toolbar">
+      <div class="seg" id="segVendas"><button data-v="grupo">Por grupo</button><button data-v="produto">Por produto</button></div>
+      <label class="mes">Mês <input type="month" id="inpMes"></label>
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="qVenda" placeholder="Buscar…"></label>
+      <select class="sel hide" id="selGrupoV"><option value="">Todos os grupos</option></select>
+      <span class="info" id="infoVenda"></span>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr id="hVenda"></tr></thead>
+      <tbody id="bVenda"></tbody>
+    </table></div>
+    <div class="more"><button class="btn hide" id="btnMaisVenda">Mostrar mais</button></div>
+  </div>
+
+  <p class="foot hide" id="footVendas">
+    <b>Vendas do mês</b>: cupons não cancelados do mês escolhido. <b>Faturamento</b> = valor dos itens vendidos, já com descontos e acréscimos.
+    <b>Custo médio</b> = custo total ÷ quantidade vendida, usando o custo gravado em cada venda no momento em que ela aconteceu. No grupo, o custo médio é por unidade vendida e mistura unidades diferentes (kg, un).
+    <b>Custo atual</b> = preço de custo hoje no cadastro, para comparar com o do mês. <b>Margem</b> = Lucro bruto ÷ Faturamento · <b>Markup</b> = Lucro bruto ÷ Custo.
+    <span id="atualizadoV"></span>
+  </p>
+
+  <p class="foot" id="footMargens">
+    <b>Margem</b> = (Venda − Custo) ÷ Venda · <b>Markup</b> = (Venda − Custo) ÷ Custo. Ambos calculados a partir do preço de custo e de venda atuais do cadastro.
+    <b>Margem ponderada</b> do grupo = Σ(Venda − Custo) ÷ Σ Venda, menos sensível a produtos com valores extremos.
+    As médias ignoram produtos sem preço de venda ou sem custo. Somente produtos ativos.
+    <span id="atualizado"></span>
+  </p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const brl = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const n0 = new Intl.NumberFormat('pt-BR');
+const pct = v => v==null||!isFinite(v) ? '—' : v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DIAS = ['dom','seg','ter','qua','qui','sex','sáb'];
+const fmtData = d => { if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const diaSemana = d => DIAS[new Date(d+'T12:00:00').getDay()];
+const addDias = (d,n) => { const x=new Date(d+'T12:00:00'); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+const pref = (k,v) => { try{ if(v===undefined) return localStorage.getItem('mg_'+k); localStorage.setItem('mg_'+k,v);}catch(e){return null;} };
+
+const st = {
+  lojas:[], loja:pref('loja')||'', dados:null, todos:[], hoje:'',
+  periodo:'hoje', dia:'', aba:'grupos',
+  sortG:{k:'margemPond',d:-1}, sortP:{k:'vigencia',d:-1},
+  limiteP:300, limiteV:60,
+  mes:'', vendas:[], vendasResumo:null, vendasChave:'', subV:pref('subV')||'grupo',
+  sortVG:{k:'fat',d:-1}, sortVP:{k:'fat',d:-1}, limiteVP:300
+};
+const qtd = v => v.toLocaleString('pt-BR',{maximumFractionDigits:3});
+const mesExtenso = m => { const [y,mm]=m.split('-'); return new Date(+y,+mm-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); };
+
+function classe(m){ if(m==null||!isFinite(m)) return 'na'; if(m<0) return 'bad'; if(m<15) return 'warn'; return 'good'; }
+function pill(m){ return `<span class="pill ${classe(m)}">${pct(m)}</span>`; }
+
+/* ---------- dados ---------- */
+async function carregarLojas(){
+  const r = await fetch('/api/lojas'); st.lojas = await r.json();
+  if(!st.lojas.find(l=>l.id===st.loja)) st.loja = st.lojas[0]?.id;
+  $('#lojas').innerHTML = st.lojas.map(l=>`<button data-l="${l.id}">${esc(l.nome)}</button>`).join('');
+  $('#lojas').classList.toggle('hide', st.lojas.length<2);
+  $('#lojas').onclick = e => { const b=e.target.closest('button'); if(b&&b.dataset.l!==st.loja){ st.loja=b.dataset.l; pref('loja',st.loja); carregar(); } };
+}
+
+async function carregar(forcar){
+  document.querySelectorAll('#lojas button').forEach(b=>b.classList.toggle('on',b.dataset.l===st.loja));
+  const nome = st.lojas.find(l=>l.id===st.loja)?.nome||'';
+  $('#loadingTxt').textContent = `Consultando ${nome}…`;
+  $('#loading').classList.add('on'); $('#btnAtualizar').classList.add('spin'); $('#err').style.display='none';
+  try{
+    const r = await fetch(`/api/produtos?loja=${st.loja}${forcar?'&atualizar=1':''}`);
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.erro||'Falha na consulta');
+    st.hoje = j.hoje;
+    const c = Object.fromEntries(j.colunas.map((k,i)=>[k,i]));
+    st.todos = j.linhas.map(l=>{
+      const custo=l[c.Custo]||0, venda=l[c.Venda]||0;
+      return {
+        cod:l[c.Codigo], nome:l[c.Nome]||'', grupo:l[c.Grupo]||'(sem grupo)', sub:l[c.SubGrupo]||'',
+        custo, venda, promo:l[c.Promocao]||0, vigencia:(l[c.Vigencia]||'').trim(), ultCompra:(l[c.Ult_Compra]||'').trim(),
+        estoque:l[c.Estoque]||0, un:(l[c.Unidade]||'').trim(),
+        margem: venda>0 ? (venda-custo)/venda*100 : null,
+        markup: custo>0 ? (venda-custo)/custo*100 : null,
+        valido: venda>0 && custo>0
+      };
+    });
+    st.todos.forEach(p=>p.busca=(p.nome+' '+p.cod).toLowerCase());
+    $('#sub').textContent = `${nome} · ${n0.format(st.todos.length)} produtos ativos · hoje ${fmtData(st.hoje)}`;
+    $('#atualizado').textContent = `Dados de ${j.atualizado}.`;
+    const grupos=[...new Set(st.todos.map(p=>p.grupo))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    const atual=$('#selGrupo').value;
+    $('#selGrupo').innerHTML='<option value="">Todos os grupos</option>'+grupos.map(g=>`<option${g===atual?' selected':''}>${esc(g)}</option>`).join('');
+    if(!st.dia) $('#inpData').value = st.hoje;
+    render();
+  }catch(e){
+    $('#err').textContent = e.message; $('#err').style.display='block';
+  }finally{
+    $('#loading').classList.remove('on'); $('#btnAtualizar').classList.remove('spin');
+  }
+}
+
+/* ---------- filtros ---------- */
+function noPeriodo(){
+  const p=st.periodo, h=st.hoje;
+  if(p==='todos') return st.todos;
+  if(p==='hoje') return st.todos.filter(x=>x.vigencia===h);
+  if(p==='dia') return st.todos.filter(x=>x.vigencia===st.dia);
+  const ini = addDias(h, -(+p-1));
+  return st.todos.filter(x=>x.vigencia>=ini && x.vigencia<=h);
+}
+function rotuloPeriodo(){
+  return {hoje:`vigência hoje (${fmtData(st.hoje)})`, '7':'vigência nos últimos 7 dias','30':'vigência nos últimos 30 dias','90':'vigência nos últimos 90 dias', todos:'todas as vigências', dia:`vigência em ${fmtData(st.dia)}`}[st.periodo];
+}
+function resumo(lista){
+  let n=0,sm=0,sk=0,sv=0,sc=0,neg=0;
+  for(const p of lista){ if(p.venda>0&&p.venda<p.custo) neg++; if(!p.valido) continue; n++; sm+=p.margem; sk+=p.markup; sv+=p.venda; sc+=p.custo; }
+  return {total:lista.length, n, margem:n?sm/n:null, markup:n?sk/n:null, margemPond:sv?(sv-sc)/sv*100:null, markupPond:sc?(sv-sc)/sc*100:null, neg};
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll('#periodo .chip[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===st.periodo));
+  $('#chipData').classList.toggle('on',st.periodo==='dia');
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===st.aba));
+  $('#vGrupos').classList.toggle('hide',st.aba!=='grupos');
+  $('#vProdutos').classList.toggle('hide',st.aba!=='produtos');
+  $('#vVig').classList.toggle('hide',st.aba!=='vigencias');
+  const ehVendas = st.aba==='vendas';
+  $('#vVendas').classList.toggle('hide',!ehVendas);
+  $('#periodo').classList.toggle('hide',ehVendas);
+  $('#footVendas').classList.toggle('hide',!ehVendas);
+  $('#footMargens').classList.toggle('hide',ehVendas);
+  if(ehVendas){ renderVendas(); return; }
+
+  const lista = noPeriodo(), r = resumo(lista);
+  const hojeN = st.todos.filter(p=>p.vigencia===st.hoje).length;
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="t">Produtos</div><div class="v">${n0.format(r.total)}</div><div class="s">${rotuloPeriodo()}</div></div>
+    <div class="kpi click" data-k="hoje"><div class="t">Vigência hoje</div><div class="v">${n0.format(hojeN)}</div><div class="s">preços alterados em ${fmtData(st.hoje)}</div></div>
+    <div class="kpi"><div class="t">Margem média</div><div class="v">${pct(r.margem)}</div><div class="s">ponderada ${pct(r.margemPond)}</div></div>
+    <div class="kpi"><div class="t">Markup médio</div><div class="v">${pct(r.markup)}</div><div class="s">ponderado ${pct(r.markupPond)}</div></div>
+    <div class="kpi click" data-k="neg"><div class="t">Abaixo do custo</div><div class="v" style="color:${r.neg?'var(--bad)':'inherit'}">${n0.format(r.neg)}</div><div class="s">venda menor que o custo</div></div>`;
+
+  renderGrupos(lista); renderProdutos(lista); renderVig();
+}
+
+function cab(el, cols, sort, onSort){
+  el.innerHTML = cols.map(([k,t,num])=>`<th data-k="${k}" class="${num?'num':''}">${t}${sort.k===k?`<span class="ar">${sort.d>0?'▲':'▼'}</span>`:''}</th>`).join('');
+  el.onclick = e => { const th=e.target.closest('th'); if(!th) return; const k=th.dataset.k; sort.d = sort.k===k ? -sort.d : (['nome','grupo','sub'].includes(k)?1:-1); sort.k=k; onSort(); };
+}
+function ordenar(arr, s){
+  const {k,d}=s;
+  return arr.sort((a,b)=>{
+    let x=a[k], y=b[k];
+    if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1;
+    const c = typeof x==='string' ? x.localeCompare(y,'pt-BR') : x-y;
+    return c*d || (k==='vigencia' ? a.nome.localeCompare(b.nome,'pt-BR') : 0);
+  });
+}
+
+function renderGrupos(lista){
+  const mapa=new Map();
+  for(const p of lista){ if(!mapa.has(p.grupo)) mapa.set(p.grupo,[]); mapa.get(p.grupo).push(p); }
+  const q=$('#qGrupo').value.trim().toLowerCase();
+  let gs=[...mapa].map(([g,ps])=>{ const r=resumo(ps); return {grupo:g,...r, ultVig:ps.reduce((m,p)=>p.vigencia>m?p.vigencia:m,'')}; });
+  $('#nGrupos').textContent=n0.format(gs.length);
+  if(q) gs=gs.filter(g=>g.grupo.toLowerCase().includes(q));
+  ordenar(gs, st.sortG);
+  cab($('#hGrupos'),[['grupo','Grupo'],['total','Produtos',1],['margem','Margem média',1],['margemPond','Margem ponderada',1],['markup','Markup médio',1],['neg','Abaixo do custo',1],['ultVig','Última vigência',1]], st.sortG, ()=>renderGrupos(noPeriodo()));
+  const max=Math.max(1,...gs.map(g=>g.margemPond||0));
+  $('#bGrupos').innerHTML = gs.length ? gs.map(g=>`
+    <tr class="link" data-g="${esc(g.grupo)}">
+      <td><b>${esc(g.grupo)}</b></td>
+      <td class="num">${n0.format(g.total)}</td>
+      <td class="num">${pill(g.margem)}</td>
+      <td class="num"><div style="display:flex;gap:10px;align-items:center;justify-content:flex-end"><div class="bar"><i style="width:${Math.max(0,Math.min(100,(g.margemPond||0)/max*100))}%"></i></div>${pill(g.margemPond)}</div></td>
+      <td class="num">${pct(g.markup)}</td>
+      <td class="num" style="color:${g.neg?'var(--bad)':'var(--faint)'}">${g.neg||'—'}</td>
+      <td class="num">${fmtData(g.ultVig)}</td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty">Nenhum produto com ${rotuloPeriodo()}.</td></tr>`;
+}
+
+function filtrarProdutos(lista){
+  const q=$('#qProd').value.trim().toLowerCase(), g=$('#selGrupo').value, f=$('#selFaixa').value;
+  return lista.filter(p=>{
+    if(g && p.grupo!==g) return false;
+    if(q && !p.busca.includes(q)) return false;
+    if(f==='neg') return p.venda>0 && p.venda<p.custo;
+    if(f==='baixa') return p.margem!=null && p.margem<15;
+    if(f==='alta') return p.margem!=null && p.margem>40;
+    if(f==='semcusto') return !(p.custo>0);
+    return true;
+  });
+}
+function renderProdutos(lista){
+  const ps = ordenar(filtrarProdutos(lista), st.sortP);
+  st.ultimosProdutos = ps;
+  $('#nProdutos').textContent=n0.format(lista.length);
+  cab($('#hProd'),[['cod','Código',1],['nome','Produto'],['grupo','Grupo'],['custo','Custo',1],['venda','Venda',1],['margem','Margem',1],['markup','Markup',1],['vigencia','Vigência',1]], st.sortP, ()=>renderProdutos(noPeriodo()));
+  const vis = ps.slice(0, st.limiteP);
+  $('#bProd').innerHTML = vis.length ? vis.map(p=>`
+    <tr>
+      <td class="num cod">${p.cod}</td>
+      <td class="nome">${esc(p.nome)}${p.promo>0?`<span class="tag" title="Preço promocional">promo ${brl.format(p.promo)}</span>`:''}${p.sub?`<div class="sub">${esc(p.sub)}</div>`:''}</td>
+      <td>${esc(p.grupo)}</td>
+      <td class="num">${brl.format(p.custo)}</td>
+      <td class="num"><b>${brl.format(p.venda)}</b></td>
+      <td class="num">${pill(p.margem)}</td>
+      <td class="num">${pct(p.markup)}</td>
+      <td class="num">${p.vigencia===st.hoje?'<span class="tag" style="margin:0 6px 0 0">hoje</span>':''}${fmtData(p.vigencia)}</td>
+    </tr>`).join('') : `<tr><td colspan="8" class="empty">Nenhum produto encontrado.</td></tr>`;
+  $('#infoProd').textContent = `${n0.format(ps.length)} produto(s)` + (ps.length>vis.length?` · exibindo ${n0.format(vis.length)}`:'');
+  $('#btnMais').classList.toggle('hide', ps.length<=vis.length);
+}
+
+function renderVig(){
+  const mapa=new Map();
+  for(const p of st.todos){ if(!p.vigencia) continue; if(!mapa.has(p.vigencia)) mapa.set(p.vigencia,[]); mapa.get(p.vigencia).push(p); }
+  const ds=[...mapa.keys()].sort().reverse();
+  $('#nVig').textContent=n0.format(ds.length);
+  const vis=ds.slice(0,st.limiteV);
+  $('#bVig').innerHTML = vis.map(d=>{
+    const ps=mapa.get(d), r=resumo(ps);
+    const gc={}; ps.forEach(p=>gc[p.grupo]=(gc[p.grupo]||0)+1);
+    const top=Object.entries(gc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([g,n])=>`${esc(g)} (${n})`).join(', ');
+    return `<tr class="link" data-d="${d}">
+      <td><b>${fmtData(d)}</b> <span style="color:var(--faint)">${diaSemana(d)}</span>${d===st.hoje?'<span class="tag">hoje</span>':''}</td>
+      <td class="num">${n0.format(r.total)}</td>
+      <td class="num">${pill(r.margem)}</td>
+      <td class="num">${pct(r.markup)}</td>
+      <td class="num" style="color:${r.neg?'var(--bad)':'var(--faint)'}">${r.neg||'—'}</td>
+      <td style="color:var(--muted);white-space:normal">${top}</td>
+    </tr>`;
+  }).join('');
+  $('#btnMaisVig').classList.toggle('hide', ds.length<=vis.length);
+}
+
+/* ---------- vendas do mês ---------- */
+async function carregarVendas(forcar){
+  if(!st.mes) st.mes = (st.hoje||new Date().toISOString()).slice(0,7);
+  $('#inpMes').value = st.mes;
+  st.vendasChave = st.loja+'|'+st.mes;
+  const chave = st.vendasChave, nome = st.lojas.find(l=>l.id===st.loja)?.nome||'';
+  $('#loadingTxt').textContent = `Somando as vendas de ${mesExtenso(st.mes)} · ${nome}…`;
+  $('#loading').classList.add('on'); $('#btnAtualizar').classList.add('spin'); $('#err').style.display='none';
+  try{
+    const r = await fetch(`/api/vendas?loja=${st.loja}&mes=${st.mes}${forcar?'&atualizar=1':''}`);
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.erro||'Falha na consulta');
+    if(chave!==st.vendasChave) return;
+    const c = Object.fromEntries(j.colunas.map((k,i)=>[k,i]));
+    st.vendas = j.linhas.map(l=>{
+      const qtde=l[c.Qtde]||0, fat=l[c.Faturamento]||0, custo=l[c.Custo_Total]||0, lucro=fat-custo;
+      const p = { cod:l[c.Codigo], nome:l[c.Nome]||'', grupo:l[c.Grupo]||'(sem grupo)', sub:l[c.SubGrupo]||'',
+        qtde, fat, custo, lucro, cupons:l[c.Cupons]||0, custoAtual:l[c.Custo_Atual]||0, vendaAtual:l[c.Venda_Atual]||0, un:(l[c.Unidade]||'').trim(),
+        precoMedio: qtde ? fat/qtde : null, custoMedio: qtde ? custo/qtde : null,
+        margem: fat>0 ? lucro/fat*100 : null, markup: custo>0 ? lucro/custo*100 : null };
+      p.busca=(p.nome+' '+p.cod+' '+p.grupo).toLowerCase(); return p;
+    });
+    st.vendasResumo = j.resumo;
+    $('#atualizadoV').textContent = `Dados de ${j.atualizado}.`;
+    const grupos=[...new Set(st.vendas.map(p=>p.grupo))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    const atual=$('#selGrupoV').value;
+    $('#selGrupoV').innerHTML='<option value="">Todos os grupos</option>'+grupos.map(g=>`<option${g===atual?' selected':''}>${esc(g)}</option>`).join('');
+  }catch(e){
+    st.vendas=[]; st.vendasResumo=null; st.vendasChave='';
+    $('#err').textContent = e.message; $('#err').style.display='block';
+  }finally{
+    $('#loading').classList.remove('on'); $('#btnAtualizar').classList.remove('spin');
+  }
+  if(st.aba==='vendas' && st.vendasChave) renderVendas();
+}
+
+function totaisVendas(ps){
+  let qtde=0,fat=0,custo=0; for(const p of ps){ qtde+=p.qtde; fat+=p.fat; custo+=p.custo; }
+  const lucro=fat-custo;
+  return {qtde,fat,custo,lucro,margem:fat>0?lucro/fat*100:null,markup:custo>0?lucro/custo*100:null,custoMedio:qtde?custo/qtde:null};
+}
+
+function renderVendas(){
+  if(!st.mes && st.hoje) st.mes = st.hoje.slice(0,7);
+  if(st.vendasChave!==st.loja+'|'+st.mes){ carregarVendas(); return; }
+  document.querySelectorAll('#segVendas button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.subV));
+  $('#selGrupoV').classList.toggle('hide',st.subV!=='produto');
+  $('#qVenda').placeholder = st.subV==='grupo' ? 'Buscar grupo…' : 'Buscar produto, código ou grupo…';
+  const T = totaisVendas(st.vendas), R = st.vendasResumo||{};
+  $('#nVendas').textContent = n0.format(st.vendas.length);
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="t">Faturamento</div><div class="v">${brl.format(T.fat)}</div><div class="s">${mesExtenso(st.mes)} · ${n0.format(R.Dias||0)} dias com venda</div></div>
+    <div class="kpi"><div class="t">Custo das vendas</div><div class="v">${brl.format(T.custo)}</div><div class="s">${n0.format(st.vendas.length)} produtos vendidos</div></div>
+    <div class="kpi"><div class="t">Lucro bruto</div><div class="v" style="color:${T.lucro<0?'var(--bad)':'inherit'}">${brl.format(T.lucro)}</div><div class="s">faturamento − custo</div></div>
+    <div class="kpi"><div class="t">Margem</div><div class="v">${pct(T.margem)}</div><div class="s">markup ${pct(T.markup)}</div></div>
+    <div class="kpi"><div class="t">Cupons</div><div class="v">${n0.format(R.Cupons||0)}</div><div class="s">ticket médio ${R.Cupons?brl.format(R.Total/R.Cupons):'—'}</div></div>`;
+
+  const q=$('#qVenda').value.trim().toLowerCase();
+  if(st.subV==='grupo'){
+    const mapa=new Map();
+    for(const p of st.vendas){ if(!mapa.has(p.grupo)) mapa.set(p.grupo,[]); mapa.get(p.grupo).push(p); }
+    let gs=[...mapa].map(([g,ps])=>({grupo:g, produtos:ps.length, ...totaisVendas(ps)}));
+    gs.forEach(g=>g.part = T.fat ? g.fat/T.fat*100 : 0);
+    if(q) gs=gs.filter(g=>g.grupo.toLowerCase().includes(q));
+    ordenar(gs, st.sortVG);
+    cab($('#hVenda'),[['grupo','Grupo'],['produtos','Produtos',1],['qtde','Qtde vendida',1],['fat','Faturamento',1],['part','Part.',1],['custo','Custo total',1],['custoMedio','Custo médio un.',1],['lucro','Lucro bruto',1],['margem','Margem',1],['markup','Markup',1]], st.sortVG, renderVendas);
+    const max=Math.max(1,...gs.map(g=>g.part));
+    $('#bVenda').innerHTML = gs.length ? gs.map(g=>`
+      <tr class="link" data-g="${esc(g.grupo)}">
+        <td><b>${esc(g.grupo)}</b></td>
+        <td class="num">${n0.format(g.produtos)}</td>
+        <td class="num">${qtd(g.qtde)}</td>
+        <td class="num"><b>${brl.format(g.fat)}</b></td>
+        <td class="num"><div style="display:flex;gap:8px;align-items:center;justify-content:flex-end"><div class="bar" style="width:70px"><i style="width:${g.part/max*100}%"></i></div>${pct(g.part)}</div></td>
+        <td class="num">${brl.format(g.custo)}</td>
+        <td class="num">${g.custoMedio==null?'—':brl.format(g.custoMedio)}</td>
+        <td class="num" style="color:${g.lucro<0?'var(--bad)':'inherit'}">${brl.format(g.lucro)}</td>
+        <td class="num">${pill(g.margem)}</td>
+        <td class="num">${pct(g.markup)}</td>
+      </tr>`).join('') : `<tr><td colspan="10" class="empty">Nenhuma venda em ${mesExtenso(st.mes)}.</td></tr>`;
+    $('#infoVenda').textContent = `${n0.format(gs.length)} grupo(s) · clique para ver os produtos`;
+    $('#btnMaisVenda').classList.add('hide');
+    st.ultimasVendas = {tipo:'grupo', linhas:gs};
+  } else {
+    const g=$('#selGrupoV').value;
+    const ps=st.vendas.filter(p=>(!g||p.grupo===g)&&(!q||p.busca.includes(q)));
+    ordenar(ps, st.sortVP);
+    cab($('#hVenda'),[['cod','Código',1],['nome','Produto'],['grupo','Grupo'],['qtde','Qtde',1],['fat','Faturamento',1],['precoMedio','Preço médio',1],['custoMedio','Custo médio',1],['custo','Custo total',1],['margem','Margem',1],['markup','Markup',1],['custoAtual','Custo atual',1]], st.sortVP, renderVendas);
+    const vis=ps.slice(0,st.limiteVP);
+    $('#bVenda').innerHTML = vis.length ? vis.map(p=>{
+      const dif = p.custoMedio && p.custoAtual ? (p.custoAtual-p.custoMedio)/p.custoMedio*100 : null;
+      const difTxt = dif!=null && Math.abs(dif)>=1 ? `<div class="sub" style="font-size:11px;color:${dif>0?'var(--bad)':'var(--good)'}">${dif>0?'▲':'▼'} ${pct(Math.abs(dif))}</div>` : '';
+      return `<tr>
+        <td class="num cod">${p.cod}</td>
+        <td class="nome">${esc(p.nome)}${p.sub?`<div class="sub">${esc(p.sub)}</div>`:''}</td>
+        <td>${esc(p.grupo)}</td>
+        <td class="num">${qtd(p.qtde)} <span style="color:var(--faint);font-size:12px">${esc(p.un)}</span></td>
+        <td class="num"><b>${brl.format(p.fat)}</b></td>
+        <td class="num">${p.precoMedio==null?'—':brl.format(p.precoMedio)}</td>
+        <td class="num">${p.custoMedio==null?'—':brl.format(p.custoMedio)}</td>
+        <td class="num">${brl.format(p.custo)}</td>
+        <td class="num">${pill(p.margem)}</td>
+        <td class="num">${pct(p.markup)}</td>
+        <td class="num" title="Custo atual do cadastro comparado ao custo médio do mês">${brl.format(p.custoAtual)}${difTxt}</td>
+      </tr>`;}).join('') : `<tr><td colspan="11" class="empty">Nenhum produto encontrado.</td></tr>`;
+    const T2=totaisVendas(ps);
+    $('#infoVenda').textContent = `${n0.format(ps.length)} produto(s) · ${brl.format(T2.fat)} · margem ${pct(T2.margem)}` + (ps.length>vis.length?` · exibindo ${n0.format(vis.length)}`:'');
+    $('#btnMaisVenda').classList.toggle('hide', ps.length<=vis.length);
+    st.ultimasVendas = {tipo:'produto', linhas:ps};
+  }
+}
+
+function exportarVendas(){
+  const u = st.ultimasVendas; if(!u) return; const loja=st.lojas.find(l=>l.id===st.loja)?.nome||st.loja;
+  const num = (v,d=2) => v==null||!isFinite(v) ? '' : v.toFixed(d).replace('.',',');
+  const linhas = u.tipo==='grupo'
+    ? [['Loja','Mes','Grupo','Produtos','Qtde','Faturamento','Participacao %','Custo total','Custo medio un.','Lucro bruto','Margem %','Markup %']]
+        .concat(u.linhas.map(g=>[loja,st.mes,g.grupo,g.produtos,num(g.qtde,3),num(g.fat),num(g.part),num(g.custo),num(g.custoMedio,4),num(g.lucro),num(g.margem),num(g.markup)]))
+    : [['Loja','Mes','Codigo','Produto','Grupo','SubGrupo','Unidade','Qtde','Faturamento','Preco medio','Custo medio','Custo total','Lucro bruto','Margem %','Markup %','Custo atual','Cupons']]
+        .concat(u.linhas.map(p=>[loja,st.mes,p.cod,p.nome,p.grupo,p.sub,p.un,num(p.qtde,3),num(p.fat),num(p.precoMedio,4),num(p.custoMedio,4),num(p.custo),num(p.lucro),num(p.margem),num(p.markup),num(p.custoAtual),p.cupons]));
+  const csv = '﻿'+linhas.map(l=>l.map(v=>{ v=String(v??''); return /[;"\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; }).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`vendas_${u.tipo}_${st.loja}_${st.mes}.csv`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- relatório PDF (compra ou vigência na data do campo Dia) ---------- */
+function relatorioHoje(){
+  const h=$('#inpData').value||st.hoje; if(!h) return;
+  const loja=st.lojas.find(l=>l.id===st.loja)?.nome||st.loja;
+  const ps=st.todos.filter(p=>p.vigencia===h||p.ultCompra===h)
+    .sort((a,b)=>a.grupo.localeCompare(b.grupo,'pt-BR')||a.nome.localeCompare(b.nome,'pt-BR'));
+  const motivo = p => p.vigencia===h&&p.ultCompra===h ? 'Compra + vigência' : p.ultCompra===h ? 'Compra' : 'Vigência';
+  const r=resumo(ps), nC=ps.filter(p=>p.ultCompra===h).length, nV=ps.filter(p=>p.vigencia===h).length;
+  const mapa=new Map(); for(const p of ps){ if(!mapa.has(p.grupo)) mapa.set(p.grupo,[]); mapa.get(p.grupo).push(p); }
+  const cls = m => m==null||!isFinite(m) ? '' : m<0 ? 'bad' : m<15 ? 'warn' : '';
+  const corpo = [...mapa].map(([g,itens])=>{ const rg=resumo(itens); return `
+    <tr class="grp"><td colspan="10">${esc(g)} <span>${itens.length} produto(s) · margem média ${pct(rg.margem)}</span></td></tr>
+    ${itens.map(p=>`<tr>
+      <td class="num">${p.cod}</td>
+      <td>${esc(p.nome)}${p.sub?`<div class="sub">${esc(p.sub)}</div>`:''}</td>
+      <td>${esc(p.un)}</td>
+      <td class="num">${brl.format(p.custo)}</td>
+      <td class="num"><b>${brl.format(p.venda)}</b>${p.promo>0?`<div class="sub">promo ${brl.format(p.promo)}</div>`:''}</td>
+      <td class="num ${cls(p.margem)}">${pct(p.margem)}</td>
+      <td class="num">${pct(p.markup)}</td>
+      <td class="num${p.ultCompra===h?' hj':''}">${fmtData(p.ultCompra)}</td>
+      <td class="num${p.vigencia===h?' hj':''}">${fmtData(p.vigencia)}</td>
+      <td>${motivo(p)}</td>
+    </tr>`).join('')}`; }).join('');
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Produtos ${fmtData(h).replace(/\//g,'-')} - ${esc(loja)}</title>
+<style>
+@page{size:A4 landscape;margin:12mm 10mm}
+*{box-sizing:border-box}
+body{margin:0;font:10px/1.35 Inter,"Segoe UI",Roboto,Arial,sans-serif;color:#14171c;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h1{font-size:17px;margin:0}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #14171c;padding-bottom:6px;margin-bottom:10px}
+.top p{margin:2px 0 0;color:#5d6672}
+.kpis{display:flex;gap:8px;margin-bottom:10px}
+.kpis div{flex:1;border:1px solid #e3e6eb;border-radius:6px;padding:6px 8px}
+.kpis small{display:block;color:#5d6672;text-transform:uppercase;font-size:8px;letter-spacing:.04em}
+.kpis b{font-size:15px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+thead{display:table-header-group}
+th{background:#f1f3f6;text-align:left;font-size:8.5px;text-transform:uppercase;letter-spacing:.03em;color:#5d6672;padding:5px 6px;border-bottom:1px solid #c9ced6}
+td{padding:4px 6px;border-bottom:1px solid #e3e6eb;vertical-align:top}
+tr{page-break-inside:avoid}
+.num{text-align:right;white-space:nowrap}
+.sub{color:#8a929d;font-size:8.5px}
+.grp td{background:#e8eefe;font-weight:700;color:#2f5bea;padding-top:6px}
+.grp span{font-weight:500;color:#5d6672;margin-left:6px}
+.bad{color:#c42b2b;font-weight:700}.warn{color:#a86200;font-weight:600}
+.hj{font-weight:700}
+.vazio{padding:40px;text-align:center;color:#5d6672;font-size:13px}
+.rod{margin-top:10px;color:#8a929d;font-size:8.5px}
+</style></head><body>
+<div class="top"><div><h1>Produtos com compra ou vigência em ${fmtData(h)}</h1>
+<p>${esc(loja)} · SISMOURA · somente produtos ativos</p></div>
+<p>Emitido em ${new Date().toLocaleString('pt-BR')}</p></div>
+<div class="kpis">
+  <div><small>Produtos</small><b>${n0.format(ps.length)}</b></div>
+  <div><small>Comprados no dia</small><b>${n0.format(nC)}</b></div>
+  <div><small>Vigência no dia</small><b>${n0.format(nV)}</b></div>
+  <div><small>Margem média</small><b>${pct(r.margem)}</b> <span class="sub">pond. ${pct(r.margemPond)}</span></div>
+  <div><small>Markup médio</small><b>${pct(r.markup)}</b></div>
+  <div><small>Abaixo do custo</small><b class="${r.neg?'bad':''}">${n0.format(r.neg)}</b></div>
+</div>
+${ps.length ? `<table><thead><tr>
+  <th class="num">Código</th><th>Produto</th><th>Un</th><th class="num">Custo</th><th class="num">Venda</th>
+  <th class="num">Margem</th><th class="num">Markup</th><th class="num">Últ. compra</th><th class="num">Vigência</th><th>Motivo</th>
+</tr></thead><tbody>${corpo}</tbody></table>` : `<div class="vazio">Nenhum produto com compra ou vigência em ${fmtData(h)}.</div>`}
+<p class="rod">Margem = (Venda − Custo) ÷ Venda · Markup = (Venda − Custo) ÷ Custo, pelos preços atuais do cadastro. Dados de ${esc($('#atualizado').textContent.replace(/^Dados de |\.$/g,''))}.</p>
+<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>
+</body></html>`;
+  const w=window.open('','_blank');
+  if(!w){ $('#err').textContent='O navegador bloqueou a janela do relatório. Permita pop-ups para localhost e tente de novo.'; $('#err').style.display='block'; return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+/* ---------- eventos ---------- */
+$('#btnPdf').onclick = relatorioHoje;
+$('#periodo').onclick = e => { const b=e.target.closest('.chip[data-p]'); if(!b) return; st.periodo=b.dataset.p; st.limiteP=300; render(); };
+$('#inpData').onchange = e => { if(!e.target.value) return; st.dia=e.target.value; st.periodo='dia'; st.limiteP=300; render(); };
+$('#tabs').onclick = e => { const b=e.target.closest('button'); if(!b) return; st.aba=b.dataset.t; pref('aba',st.aba); render(); };
+$('#bGrupos').onclick = e => { const tr=e.target.closest('tr[data-g]'); if(!tr) return; $('#selGrupo').value=tr.dataset.g; st.aba='produtos'; st.limiteP=300; render(); };
+$('#bVig').onclick = e => { const tr=e.target.closest('tr[data-d]'); if(!tr) return; st.dia=tr.dataset.d; $('#inpData').value=st.dia; st.periodo='dia'; st.aba='produtos'; $('#selGrupo').value=''; st.limiteP=300; render(); };
+$('#kpis').onclick = e => { const k=e.target.closest('.kpi.click')?.dataset.k; if(!k) return;
+  if(k==='hoje'){ st.periodo='hoje'; } else { $('#selFaixa').value='neg'; }
+  st.aba='produtos'; st.limiteP=300; render(); };
+let t; const deb = f => { clearTimeout(t); t=setTimeout(f,150); };
+$('#qProd').oninput = () => deb(()=>{ st.limiteP=300; renderProdutos(noPeriodo()); });
+$('#qGrupo').oninput = () => deb(()=>renderGrupos(noPeriodo()));
+$('#selGrupo').onchange = $('#selFaixa').onchange = () => { st.limiteP=300; renderProdutos(noPeriodo()); };
+$('#btnMais').onclick = () => { st.limiteP+=500; renderProdutos(noPeriodo()); };
+$('#btnMaisVig').onclick = () => { st.limiteV+=120; renderVig(); };
+$('#btnAtualizar').onclick = () => st.aba==='vendas' ? carregarVendas(true) : carregar(true);
+$('#segVendas').onclick = e => { const b=e.target.closest('button'); if(!b) return; st.subV=b.dataset.v; pref('subV',st.subV); $('#qVenda').value=''; st.limiteVP=300; renderVendas(); };
+$('#inpMes').onchange = e => { if(!/^\d{4}-\d{2}$/.test(e.target.value)) return; st.mes=e.target.value; carregarVendas(); };
+$('#qVenda').oninput = () => deb(()=>{ st.limiteVP=300; renderVendas(); });
+$('#selGrupoV').onchange = () => { st.limiteVP=300; renderVendas(); };
+$('#btnMaisVenda').onclick = () => { st.limiteVP+=500; renderVendas(); };
+$('#bVenda').onclick = e => { const tr=e.target.closest('tr[data-g]'); if(!tr) return; st.subV='produto'; $('#qVenda').value=''; st.limiteVP=300; renderVendas(); $('#selGrupoV').value=tr.dataset.g; renderVendas(); };
+$('#btnTema').onclick = () => {
+  const escuro = document.documentElement.dataset.theme ? document.documentElement.dataset.theme==='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.dataset.theme = escuro?'light':'dark'; pref('tema',document.documentElement.dataset.theme);
+};
+$('#btnCsv').onclick = () => {
+  if(st.aba==='vendas') return exportarVendas();
+  const ps = st.ultimosProdutos||[]; const loja=st.lojas.find(l=>l.id===st.loja)?.nome||st.loja;
+  const num = v => v==null||!isFinite(v) ? '' : v.toFixed(2).replace('.',',');
+  const linhas = [['Loja','Codigo','Produto','Grupo','SubGrupo','Custo','Venda','Margem %','Markup %','Vigencia']]
+    .concat(ps.map(p=>[loja,p.cod,p.nome,p.grupo,p.sub,num(p.custo),num(p.venda),num(p.margem),num(p.markup),fmtData(p.vigencia)]));
+  const csv = '﻿'+linhas.map(l=>l.map(v=>{ v=String(v??''); return /[;"\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; }).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`margens_${st.loja}_${st.periodo==='dia'?st.dia:st.periodo}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+
+(async()=>{
+  const tema=pref('tema'); if(tema) document.documentElement.dataset.theme=tema;
+  st.aba = pref('aba')||'grupos';
+  try{ await carregarLojas(); await carregar(); }
+  catch(e){ $('#err').textContent='Servidor não encontrado. Inicie com "python servidor.py" (ou Abrir Painel.bat).'; $('#err').style.display='block'; }
+})();
+</script>
+</body>
+</html>
