@@ -125,6 +125,17 @@ td.cod{color:var(--muted)}
 .mes{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:9px;padding:5px 10px;background:var(--bg);font-size:13px;color:var(--muted)}
 .mes input{border:0;background:transparent;outline:none;color:var(--text)}
 .hide{display:none!important}
+.gsel{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center}
+.gsel .lbl{color:var(--muted);font-size:12px;margin-right:2px}
+.gsel label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg);padding:4px 10px;border-radius:999px;font-size:12.5px;cursor:pointer;user-select:none}
+.gsel label.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.gsel label input{margin:0;accent-color:var(--accent)}
+.gsel label .c{color:var(--faint);font-weight:500}
+.gsel .lnk{border:0;background:none;color:var(--accent);cursor:pointer;font-size:12.5px;padding:4px 6px}
+td.chk,th.chk{width:36px;text-align:center}
+td.chk input,th.chk input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+tr.off td:not(.chk){opacity:.45}
+.up{color:var(--bad)}.down{color:var(--good)}
 @media (max-width:640px){
   .kpi .v{font-size:22px}
   .toolbar .info{margin-left:0;width:100%}
@@ -169,6 +180,7 @@ td.cod{color:var(--muted)}
     <button data-t="produtos">Produtos<span class="n" id="nProdutos">0</span></button>
     <button data-t="vigencias">Por data de vigência<span class="n" id="nVig">0</span></button>
     <button data-t="vendas">Vendas do mês<span class="n" id="nVendas">—</span></button>
+    <button data-t="alterados">Relatório de alterados<span class="n" id="nAlt">—</span></button>
   </div>
 
   <!-- GRUPOS -->
@@ -216,6 +228,32 @@ td.cod{color:var(--muted)}
     </table></div>
     <div class="more"><button class="btn hide" id="btnMaisVig">Mostrar mais</button></div>
   </div>
+
+  <!-- RELATÓRIO DE ALTERADOS -->
+  <div class="card hide" id="vAlt">
+    <div class="toolbar">
+      <label class="mes">Dia <input type="date" id="altDia"></label>
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="qAlt" placeholder="Buscar produto ou código…"></label>
+      <button class="btn primary" id="btnAltPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M9 14h6M9 17h4"/></svg>Gerar PDF</button>
+      <span class="info" id="infoAlt"></span>
+    </div>
+    <div class="gsel" id="altGrupos"></div>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th class="chk"><input type="checkbox" id="altTodos" title="Marcar/desmarcar todos os itens visíveis"></th>
+        <th class="num">Código</th><th>Produto</th><th>Grupo</th>
+        <th class="num">Preço anterior</th><th class="num">Preço de venda</th><th class="num">Variação</th><th class="num">Hora</th>
+      </tr></thead>
+      <tbody id="bAlt"></tbody>
+    </table></div>
+  </div>
+
+  <p class="foot hide" id="footAlt">
+    <b>Relatório de alterados</b>: produtos ativos cujo preço de venda do cadastro mudou no dia escolhido (histórico de alteração de preço do SISMOURA).
+    Produtos cadastrados no dia, sem preço anterior, ficam de fora. Se o preço mudou mais de uma vez no dia, vale o preço do início do dia e o último; se voltou ao mesmo valor, não entra.
+    Marque os grupos e os itens que devem sair no PDF, que traz código, produto e preço de venda.
+    <span id="atualizadoA"></span>
+  </p>
 
   <!-- VENDAS DO MÊS -->
   <div class="card hide" id="vVendas">
@@ -266,7 +304,8 @@ const st = {
   sortG:{k:'margemPond',d:-1}, sortP:{k:'vigencia',d:-1},
   limiteP:300, limiteV:60,
   mes:'', vendas:[], vendasResumo:null, vendasChave:'', subV:pref('subV')||'grupo',
-  sortVG:{k:'fat',d:-1}, sortVP:{k:'fat',d:-1}, limiteVP:300
+  sortVG:{k:'fat',d:-1}, sortVP:{k:'fat',d:-1}, limiteVP:300,
+  alt:{dia:'', chave:'', itens:[], grupos:new Set(), desm:new Set()}
 };
 const qtd = v => v.toLocaleString('pt-BR',{maximumFractionDigits:3});
 const mesExtenso = m => { const [y,mm]=m.split('-'); return new Date(+y,+mm-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); };
@@ -346,12 +385,15 @@ function render(){
   $('#vGrupos').classList.toggle('hide',st.aba!=='grupos');
   $('#vProdutos').classList.toggle('hide',st.aba!=='produtos');
   $('#vVig').classList.toggle('hide',st.aba!=='vigencias');
-  const ehVendas = st.aba==='vendas';
+  const ehVendas = st.aba==='vendas', ehAlt = st.aba==='alterados';
   $('#vVendas').classList.toggle('hide',!ehVendas);
-  $('#periodo').classList.toggle('hide',ehVendas);
+  $('#vAlt').classList.toggle('hide',!ehAlt);
+  $('#periodo').classList.toggle('hide',ehVendas||ehAlt);
   $('#footVendas').classList.toggle('hide',!ehVendas);
-  $('#footMargens').classList.toggle('hide',ehVendas);
+  $('#footAlt').classList.toggle('hide',!ehAlt);
+  $('#footMargens').classList.toggle('hide',ehVendas||ehAlt);
   if(ehVendas){ renderVendas(); return; }
+  if(ehAlt){ renderAlterados(); return; }
 
   const lista = noPeriodo(), r = resumo(lista);
   const hojeN = st.todos.filter(p=>p.vigencia===st.hoje).length;
@@ -655,7 +697,146 @@ ${ps.length ? `<table><thead><tr>
   w.document.open(); w.document.write(html); w.document.close();
 }
 
+/* ---------- relatório de alterados ---------- */
+async function carregarAlterados(forcar){
+  const A = st.alt;
+  if(!A.dia) A.dia = st.hoje;
+  $('#altDia').value = A.dia;
+  const chave = st.loja+'|'+A.dia, nome = st.lojas.find(l=>l.id===st.loja)?.nome||'';
+  const nova = chave!==A.chave;
+  A.chave = chave;
+  $('#loadingTxt').textContent = `Buscando preços alterados em ${fmtData(A.dia)} · ${nome}…`;
+  $('#loading').classList.add('on'); $('#btnAtualizar').classList.add('spin'); $('#err').style.display='none';
+  try{
+    const r = await fetch(`/api/alterados?loja=${st.loja}&dia=${A.dia}${forcar?'&atualizar=1':''}`);
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.erro||'Falha na consulta');
+    if(chave!==A.chave) return;
+    const c = Object.fromEntries(j.colunas.map((k,i)=>[k,i]));
+    A.itens = j.linhas.map(l=>{
+      const ant=l[c.Anterior]||0, novo=l[c.Novo]||0;
+      const p = { cod:l[c.Codigo], nome:l[c.Nome]||'', grupo:l[c.Grupo]||'(sem grupo)', ant, novo,
+        atual:l[c.Atual]||0, hora:(l[c.Hora]||'').trim(), n:l[c.Alteracoes]||1, un:(l[c.Unidade]||'').trim(),
+        varPct: ant>0 ? (novo-ant)/ant*100 : null };
+      p.busca=(p.nome+' '+p.cod).toLowerCase(); return p;
+    }).sort((a,b)=>a.grupo.localeCompare(b.grupo,'pt-BR')||a.nome.localeCompare(b.nome,'pt-BR'));
+    const grupos = new Set(A.itens.map(p=>p.grupo));
+    if(nova){ A.grupos = grupos; A.desm = new Set(); }
+    else A.grupos = new Set([...A.grupos].filter(g=>grupos.has(g)));
+    $('#atualizadoA').textContent = `Dados de ${j.atualizado}.`;
+  }catch(e){
+    A.itens=[]; A.chave='';
+    $('#err').textContent = e.message; $('#err').style.display='block';
+  }finally{
+    $('#loading').classList.remove('on'); $('#btnAtualizar').classList.remove('spin');
+  }
+  if(st.aba==='alterados' && A.chave) renderAlterados();
+}
+
+function altVisiveis(){
+  const A=st.alt, q=$('#qAlt').value.trim().toLowerCase();
+  return A.itens.filter(p=>A.grupos.has(p.grupo) && (!q||p.busca.includes(q)));
+}
+function altSelecionados(){ return altVisiveis().filter(p=>!st.alt.desm.has(p.cod)); }
+
+function renderAlterados(){
+  const A=st.alt;
+  if(!A.dia && st.hoje) A.dia = st.hoje;
+  if(A.chave!==st.loja+'|'+A.dia){ carregarAlterados(); return; }
+  const vis=altVisiveis(), sel=vis.filter(p=>!A.desm.has(p.cod));
+  const sobe=A.itens.filter(p=>p.novo>p.ant).length, desce=A.itens.length-sobe;
+  $('#nAlt').textContent = n0.format(A.itens.length);
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="t">Preços alterados</div><div class="v">${n0.format(A.itens.length)}</div><div class="s">em ${fmtData(A.dia)}${A.dia===st.hoje?' (hoje)':''}</div></div>
+    <div class="kpi"><div class="t">Aumentaram</div><div class="v" style="color:${sobe?'var(--bad)':'inherit'}">${n0.format(sobe)}</div><div class="s">preço novo maior</div></div>
+    <div class="kpi"><div class="t">Baixaram</div><div class="v" style="color:${desce?'var(--good)':'inherit'}">${n0.format(desce)}</div><div class="s">preço novo menor</div></div>
+    <div class="kpi"><div class="t">No PDF</div><div class="v">${n0.format(sel.length)}</div><div class="s">${n0.format(A.grupos.size)} de ${n0.format(new Set(A.itens.map(p=>p.grupo)).size)} grupo(s) marcados</div></div>`;
+
+  const gc={}; A.itens.forEach(p=>gc[p.grupo]=(gc[p.grupo]||0)+1);
+  const gs=Object.keys(gc).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  $('#altGrupos').innerHTML = gs.length ? `<span class="lbl">Grupos:</span>`+gs.map(g=>{ const on=A.grupos.has(g);
+    return `<label class="${on?'on':''}"><input type="checkbox" data-g="${esc(g)}"${on?' checked':''}>${esc(g)} <span class="c">${gc[g]}</span></label>`; }).join('')
+    + `<button class="lnk" data-acao="todos">Marcar todos</button><button class="lnk" data-acao="nenhum">Desmarcar todos</button>` : '';
+  $('#altGrupos').classList.toggle('hide',!gs.length);
+
+  $('#bAlt').innerHTML = vis.length ? vis.map(p=>{ const on=!A.desm.has(p.cod);
+    return `<tr class="${on?'':'off'}">
+      <td class="chk"><input type="checkbox" data-c="${p.cod}"${on?' checked':''}></td>
+      <td class="num cod">${p.cod}</td>
+      <td class="nome">${esc(p.nome)}${p.atual && Math.abs(p.atual-p.novo)>=0.005?`<div class="sub">preço atual no cadastro: ${brl.format(p.atual)}</div>`:''}</td>
+      <td>${esc(p.grupo)}</td>
+      <td class="num" style="color:var(--muted)">${brl.format(p.ant)}</td>
+      <td class="num"><b>${brl.format(p.novo)}</b></td>
+      <td class="num ${p.novo>p.ant?'up':'down'}">${p.novo>p.ant?'▲':'▼'} ${pct(Math.abs(p.varPct))}</td>
+      <td class="num" style="color:var(--faint)" title="${p.n>1?p.n+' alterações no dia':''}">${p.hora}${p.n>1?` <span class="tag" style="margin:0">${p.n}×</span>`:''}</td>
+    </tr>`; }).join('')
+    : `<tr><td colspan="8" class="empty">${A.itens.length?'Nenhum item nos grupos marcados.':`Nenhum preço de venda alterado em ${fmtData(A.dia)}.`}</td></tr>`;
+  $('#altTodos').checked = vis.length>0 && sel.length===vis.length;
+  $('#altTodos').indeterminate = sel.length>0 && sel.length<vis.length;
+  $('#infoAlt').textContent = `${n0.format(sel.length)} de ${n0.format(vis.length)} item(ns) marcados para o PDF`;
+  $('#btnAltPdf').disabled = !sel.length;
+}
+
+function pdfAlterados(){
+  const ps=altSelecionados(); if(!ps.length) return;
+  const A=st.alt, loja=st.lojas.find(l=>l.id===st.loja)?.nome||st.loja;
+  const mapa=new Map(); for(const p of ps){ if(!mapa.has(p.grupo)) mapa.set(p.grupo,[]); mapa.get(p.grupo).push(p); }
+  const corpo=[...mapa].map(([g,itens])=>`
+    <tr class="grp"><td colspan="3">${esc(g)} <span>${itens.length} item(ns)</span></td></tr>
+    ${itens.map(p=>`<tr><td class="num">${p.cod}</td><td>${esc(p.nome)}</td><td class="num"><b>${brl.format(p.novo)}</b></td></tr>`).join('')}`).join('');
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Precos alterados ${fmtData(A.dia).replace(/\//g,'-')} - ${esc(loja)}</title>
+<style>
+@page{size:A4 portrait;margin:12mm}
+*{box-sizing:border-box}
+body{margin:0;font:11px/1.4 Inter,"Segoe UI",Roboto,Arial,sans-serif;color:#14171c;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h1{font-size:16px;margin:0}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #14171c;padding-bottom:6px;margin-bottom:10px;gap:12px}
+.top p{margin:2px 0 0;color:#5d6672}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+thead{display:table-header-group}
+th{background:#f1f3f6;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.03em;color:#5d6672;padding:5px 8px;border-bottom:1px solid #c9ced6}
+td{padding:5px 8px;border-bottom:1px solid #e3e6eb}
+tr{page-break-inside:avoid}
+.num{text-align:right;white-space:nowrap;width:1%}
+.grp td{background:#e8eefe;font-weight:700;color:#2f5bea;padding-top:7px}
+.grp span{font-weight:500;color:#5d6672;margin-left:6px}
+.rod{margin-top:10px;color:#8a929d;font-size:9px}
+</style></head><body>
+<div class="top"><div><h1>Preços de venda alterados em ${fmtData(A.dia)}</h1>
+<p>${esc(loja)} · ${n0.format(ps.length)} produto(s)</p></div>
+<p>Emitido em ${new Date().toLocaleString('pt-BR')}</p></div>
+<table><thead><tr><th class="num">Código</th><th>Produto</th><th class="num">Preço de venda</th></tr></thead>
+<tbody>${corpo}</tbody></table>
+<p class="rod">Preço de venda após a última alteração do dia. Fonte: histórico de alteração de preço do SISMOURA.</p>
+<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>
+</body></html>`;
+  const w=window.open('','_blank');
+  if(!w){ $('#err').textContent='O navegador bloqueou a janela do relatório. Permita pop-ups para este endereço e tente de novo.'; $('#err').style.display='block'; return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+function exportarAlterados(){
+  const ps=altSelecionados(); const loja=st.lojas.find(l=>l.id===st.loja)?.nome||st.loja;
+  const num = v => v==null||!isFinite(v) ? '' : v.toFixed(2).replace('.',',');
+  const linhas = [['Loja','Data','Codigo','Produto','Grupo','Preco anterior','Preco de venda','Variacao %','Hora']]
+    .concat(ps.map(p=>[loja,fmtData(st.alt.dia),p.cod,p.nome,p.grupo,num(p.ant),num(p.novo),num(p.varPct),p.hora]));
+  const csv = '﻿'+linhas.map(l=>l.map(v=>{ v=String(v??''); return /[;"\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; }).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`precos_alterados_${st.loja}_${st.alt.dia}.csv`; a.click(); URL.revokeObjectURL(a.href);
+}
+
 /* ---------- eventos ---------- */
+$('#altDia').onchange = e => { if(!e.target.value) return; st.alt.dia=e.target.value; carregarAlterados(); };
+$('#qAlt').oninput = () => deb(renderAlterados);
+$('#altGrupos').onclick = e => { const b=e.target.closest('.lnk'); if(!b) return;
+  st.alt.grupos = b.dataset.acao==='todos' ? new Set(st.alt.itens.map(p=>p.grupo)) : new Set(); renderAlterados(); };
+$('#altGrupos').onchange = e => { const g=e.target.dataset.g; if(g==null) return;
+  e.target.checked ? st.alt.grupos.add(g) : st.alt.grupos.delete(g); renderAlterados(); };
+$('#bAlt').onchange = e => { const c=e.target.dataset.c; if(c==null) return;
+  e.target.checked ? st.alt.desm.delete(+c) : st.alt.desm.add(+c); renderAlterados(); };
+$('#altTodos').onchange = e => { altVisiveis().forEach(p=> e.target.checked ? st.alt.desm.delete(p.cod) : st.alt.desm.add(p.cod)); renderAlterados(); };
+$('#btnAltPdf').onclick = pdfAlterados;
 $('#btnPdf').onclick = relatorioHoje;
 $('#periodo').onclick = e => { const b=e.target.closest('.chip[data-p]'); if(!b) return; st.periodo=b.dataset.p; st.limiteP=300; render(); };
 $('#inpData').onchange = e => { if(!e.target.value) return; st.dia=e.target.value; st.periodo='dia'; st.limiteP=300; render(); };
@@ -671,7 +852,7 @@ $('#qGrupo').oninput = () => deb(()=>renderGrupos(noPeriodo()));
 $('#selGrupo').onchange = $('#selFaixa').onchange = () => { st.limiteP=300; renderProdutos(noPeriodo()); };
 $('#btnMais').onclick = () => { st.limiteP+=500; renderProdutos(noPeriodo()); };
 $('#btnMaisVig').onclick = () => { st.limiteV+=120; renderVig(); };
-$('#btnAtualizar').onclick = () => st.aba==='vendas' ? carregarVendas(true) : carregar(true);
+$('#btnAtualizar').onclick = () => st.aba==='vendas' ? carregarVendas(true) : st.aba==='alterados' ? carregarAlterados(true) : carregar(true);
 $('#segVendas').onclick = e => { const b=e.target.closest('button'); if(!b) return; st.subV=b.dataset.v; pref('subV',st.subV); $('#qVenda').value=''; st.limiteVP=300; renderVendas(); };
 $('#inpMes').onchange = e => { if(!/^\d{4}-\d{2}$/.test(e.target.value)) return; st.mes=e.target.value; carregarVendas(); };
 $('#qVenda').oninput = () => deb(()=>{ st.limiteVP=300; renderVendas(); });
@@ -684,6 +865,7 @@ $('#btnTema').onclick = () => {
 };
 $('#btnCsv').onclick = () => {
   if(st.aba==='vendas') return exportarVendas();
+  if(st.aba==='alterados') return exportarAlterados();
   const ps = st.ultimosProdutos||[]; const loja=st.lojas.find(l=>l.id===st.loja)?.nome||st.loja;
   const num = v => v==null||!isFinite(v) ? '' : v.toFixed(2).replace('.',',');
   const linhas = [['Loja','Codigo','Produto','Grupo','SubGrupo','Custo','Venda','Margem %','Markup %','Vigencia']]

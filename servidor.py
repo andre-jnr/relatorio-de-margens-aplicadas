@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 import webbrowser
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -131,6 +131,42 @@ SELECT COUNT(*) AS Cupons, CAST(SUM(Valor_Final) AS float) AS Total,
 FROM Venda WHERE Cancelada = 'N' AND Data >= ? AND Data < ?
 """
 
+# Preço de venda alterado no dia: Lista_Preco 0 é o preço do cadastro (Produto.Preco_Produto).
+# Tipo 'C' (produto novo) tem preço anterior zero e fica de fora. Com várias alterações no
+# mesmo dia, vale o primeiro "anterior" e o último "novo"; se voltou ao mesmo preço, não entra.
+SQL_ALTERADOS = """
+WITH h AS (
+    SELECT Produto, Data, Valor_Anterior, Valor_Novo,
+           ROW_NUMBER() OVER (PARTITION BY Produto ORDER BY Data, Id)           AS pri,
+           ROW_NUMBER() OVER (PARTITION BY Produto ORDER BY Data DESC, Id DESC) AS ult,
+           COUNT(*) OVER (PARTITION BY Produto)                                 AS n
+    FROM Historico_Alteracao_Preco
+    WHERE Campo_Alterado = 'Preco_Produto' AND ISNULL(Lista_Preco, 0) = 0
+      AND Data >= ? AND Data < ?
+), d AS (
+    SELECT Produto,
+           MAX(CASE WHEN pri = 1 THEN Valor_Anterior END) AS Anterior,
+           MAX(CASE WHEN ult = 1 THEN Valor_Novo END)     AS Novo,
+           MAX(CASE WHEN ult = 1 THEN Data END)           AS Hora,
+           MAX(n)                                         AS Alteracoes
+    FROM h GROUP BY Produto
+)
+SELECT
+    d.Produto                              AS Codigo,
+    p.Nome,
+    ISNULL(g.Descricao, '(sem grupo)')     AS Grupo,
+    CAST(d.Anterior AS float)              AS Anterior,
+    CAST(d.Novo AS float)                  AS Novo,
+    CAST(p.Preco_Produto AS float)         AS Atual,
+    CONVERT(char(5), d.Hora, 108)          AS Hora,
+    d.Alteracoes,
+    p.Unidade
+FROM d
+JOIN Produto p            ON p.Codigo = d.Produto
+LEFT JOIN Grupo_Produto g ON g.Codigo = p.Grupo
+WHERE d.Anterior > 0 AND d.Novo <> d.Anterior AND ISNULL(p.Inativo, 'N') <> 'S'
+"""
+
 _cache = {}
 _trava = threading.Lock()
 
@@ -169,6 +205,15 @@ def consultar(cfg, loja, fn):
 def buscar_produtos(cur):
     cols, linhas = _rodar(cur, SQL_PRODUTOS)
     return {"colunas": cols, "linhas": linhas}
+
+
+def buscar_alterados(dia):
+    ini = date.fromisoformat(dia)
+
+    def fn(cur):
+        cols, linhas = _rodar(cur, SQL_ALTERADOS, (ini, ini + timedelta(days=1)))
+        return {"dia": dia, "colunas": cols, "linhas": linhas}
+    return fn
 
 
 def buscar_vendas(mes):
@@ -221,7 +266,7 @@ class Handler(SimpleHTTPRequestHandler):
             cfg = carregar_config()
             return self._json([{"id": k, "nome": v["nome"]} for k, v in cfg["lojas"].items()
                                if k not in LOJAS_SEM_PRODUTOS])
-        if url.path in ("/api/produtos", "/api/vendas"):
+        if url.path in ("/api/produtos", "/api/vendas", "/api/alterados"):
             q = parse_qs(url.query)
             loja = q.get("loja", [""])[0]
             forcar = q.get("atualizar", ["0"])[0] == "1"
@@ -230,6 +275,14 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"erro": f"Loja '{loja}' inválida."}, 400)
             if url.path == "/api/produtos":
                 return self._cacheado(cfg, loja, ("produtos", loja), buscar_produtos, forcar, "produtos carregados")
+            if url.path == "/api/alterados":
+                dia = q.get("dia", [""])[0]
+                try:
+                    date.fromisoformat(dia)
+                except ValueError:
+                    return self._json({"erro": "Data inválida."}, 400)
+                return self._cacheado(cfg, loja, ("alterados", loja, dia), buscar_alterados(dia), forcar,
+                                      f"preços alterados em {dia}")
             mes = q.get("mes", [""])[0]
             if not re.fullmatch(r"20\d{2}-(0[1-9]|1[0-2])", mes):
                 return self._json({"erro": "Mês inválido."}, 400)
